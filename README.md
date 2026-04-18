@@ -7,74 +7,70 @@
 ## 📋 Table of Contents
 
 1. [Project Overview](#1-project-overview)
-2. [Project Structure](#2-project-structure)
+2. [Repository Structure](#2-repository-structure)
 3. [Prerequisites](#3-prerequisites)
 4. [Clone & Setup](#4-clone--setup)
 5. [Dataset Setup](#5-dataset-setup)
 6. [Running the Project](#6-running-the-project)
-7. [System Architecture](#7-system-architecture)
-8. [Development Phases — Execution Order](#8-development-phases--execution-order)
-9. [Team Responsibilities](#9-team-responsibilities)
-10. [Contribution Guide](#10-contribution-guide)
-11. [Important Rules](#11-important-rules)
+7. [File-by-File Explanation](#7-file-by-file-explanation)
+8. [System Architecture](#8-system-architecture)
+9. [Development Phases — Execution Order](#9-development-phases--execution-order)
+10. [Team Responsibilities](#10-team-responsibilities)
+11. [Contribution Guide](#11-contribution-guide)
+12. [Important Rules](#12-important-rules)
 
 ---
 
 ## 1. Project Overview
 
-**Synapse Live** is an AI-powered tactical engine built for real-time cricket decision-making. It processes historical IPL data and simulates live match conditions to generate actionable strategies for batting, bowling, and field placement.
+**Synapse Live** is an AI-powered tactical engine built for real-time cricket decision-making. It processes IPL match data and simulates live match conditions to generate actionable strategies for batting, bowling, and field placement.
 
 ### What it does
 
-- Ingests and processes **ball-by-ball IPL data (2008–2024)**
-- Simulates **real-time match scenarios** based on current match state
-- Generates three types of output:
-  - **Batting Strategy** — shot selection, aggression level, target run-rate pacing
-  - **Bowling Strategy** — bowler rotation, line and length, variation recommendations
-  - **Captain Instructions** — over-by-over tactical adjustments
+- Ingests and processes **ball-by-ball IPL data** via `clean_ipl_dataset.csv`
+- Simulates **real-time match scenarios** through `simulation_code.py`
+- Pulls **player performance profiles** from `player_stats.py`
+- Generates tactical recommendations through `tactical_decision_engine.py`
+- Trains and validates ML models via `tactical_model_trainer.py`
 
 ### Design Philosophy
 
-- Acts as a **Virtual Intelligent Captain** — not just stats, but actionable decisions
+- Acts as a **Virtual Intelligent Captain** — not just stats, but actionable over-by-over decisions
 - Built around **real-time tactical adaptation** to changing match conditions
-- Modular design so Model, Backend, and Frontend teams can work independently
+- Modular file structure so Model, Backend, and Frontend teams can work independently without conflicts
 
 ---
 
-## 2. Project Structure
+## 2. Repository Structure
 
 ```
-Synapse_Live/
+Synapse_live/
 │
-├── ipl_json/                   # Ball-by-ball IPL JSON data (NOT in repo — see Section 5)
+├── models/                       # Saved trained model files (.pkl, .h5, etc.)
 │
-├── data/                       # Processed/cleaned data outputs
+├── .gitignore                    # Files Git should ignore (datasets, __pycache__, etc.)
+├── README.md                     # This file
 │
-├── models/                     # Saved trained model files (.pkl, .h5, etc.)
+├── clean_ipl_dataset.csv         # Preprocessed IPL match dataset (ball-by-ball features)
 │
-├── features/                   # Feature engineering scripts
-│   └── feature_extractor.py
+├── feature_extractor.py          # Converts raw match state into ML-ready feature vectors
+├── player_stats.py               # Fetches and computes player performance statistics
+├── simulation_code.py            # Simulates live match conditions ball-by-ball
+├── synapse_live.py               # Main entry point — connects all modules together
+├── tactical_decision_engine.py   # Translates model output into captain instructions
+├── tactical_model_trainer.py     # Trains, evaluates, and saves the ML model
 │
-├── engine/                     # Core tactical decision logic
-│   └── strategy_engine.py
-│
-├── api/                        # FastAPI backend (Team 2)
-│   └── main.py
-│
-├── ui/                         # Streamlit frontend (Team 3)
-│   └── app.py
-│
-├── test_model.py               # Quick model validation script
-├── test_strategy.py            # Full pipeline simulation test
-├── requirements.txt
-└── README.md
+├── test_model.py                 # Validates the trained model loads and predicts correctly
+└── test_strategy.py              # Full pipeline test: simulation → features → model → strategy
 ```
+
+> 📁 The `models/` folder is auto-populated by `tactical_model_trainer.py`. Do **not** manually edit files inside it.
 
 ---
 
 ## 3. Prerequisites
 
-Before setting up the project, ensure the following are installed on your machine:
+Ensure the following are installed before setting up the project:
 
 | Tool | Version | Purpose |
 |------|---------|---------|
@@ -82,7 +78,7 @@ Before setting up the project, ensure the following are installed on your machin
 | pip | Latest | Package management |
 | Git | Any recent | Version control |
 
-> ⚠️ **Python 3.12+ is NOT recommended** — some ML libraries (e.g., TensorFlow) may not be compatible yet.
+> ⚠️ **Python 3.12+ is NOT recommended** — TensorFlow and some other ML libraries may not be fully compatible yet.
 
 ---
 
@@ -91,27 +87,26 @@ Before setting up the project, ensure the following are installed on your machin
 ### Step 1 — Clone the Repository
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/Synapse_Live.git
-cd Synapse_Live
+git clone https://github.com/Raushan1504/Synapse_live.git
+cd Synapse_live
 ```
 
-### Step 2 — Create a Virtual Environment (Recommended)
+### Step 2 — Create a Virtual Environment (Strongly Recommended)
 
-Using a virtual environment avoids conflicts with other Python projects on your machine.
+A virtual environment prevents dependency conflicts with other Python projects on your machine.
 
 ```bash
 # Create virtual environment
 python -m venv venv
 
-# Activate it
-# On Windows:
+# Activate — Windows:
 venv\Scripts\activate
 
-# On macOS/Linux:
+# Activate — macOS/Linux:
 source venv/bin/activate
 ```
 
-> You should see `(venv)` at the start of your terminal prompt when it's active.
+You should see `(venv)` at the start of your terminal prompt when active.
 
 ### Step 3 — Install Dependencies
 
@@ -119,7 +114,9 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### Required Libraries (in `requirements.txt`)
+### Required Libraries
+
+If a `requirements.txt` does not yet exist in the repo, create one with the following:
 
 ```
 numpy
@@ -142,22 +139,22 @@ seaborn
 
 ## 5. Dataset Setup
 
-The IPL dataset is **not included in this repository** due to its size.
+### What IS already in the repo
 
-### Step 1 — Download the Dataset
+`clean_ipl_dataset.csv` — a preprocessed, ML-ready version of IPL ball-by-ball data. This is your primary input for model training and should be present in the repo root.
 
-Download the ball-by-ball IPL JSON dataset from Google Drive:
+### If you need the raw IPL JSON data (for re-engineering features from scratch)
+
+Download the full dataset from Google Drive:
 
 ```
 👉 [PASTE YOUR GOOGLE DRIVE LINK HERE]
 ```
 
-### Step 2 — Place the Dataset Correctly
-
-After downloading, unzip/extract and place the folder exactly as shown:
+After downloading, place the extracted folder as follows:
 
 ```
-Synapse_Live/
+Synapse_live/
     └── ipl_json/
             ├── 2008/
             ├── 2009/
@@ -165,173 +162,227 @@ Synapse_Live/
             └── 2024/
 ```
 
-> ❌ Do **not** rename the folder. The data loading scripts expect the folder to be named `ipl_json`.
+> ❌ Do **not** rename the folder. Raw data parsing scripts expect the folder to be called `ipl_json`.  
+> ❌ Do **not** commit this folder to Git. It is already covered by `.gitignore`.
 
 ---
 
 ## 6. Running the Project
 
-Once setup and dataset are complete, verify everything is working with these two scripts:
+Run these scripts in order. Do not skip steps.
 
-### Test 1 — Model Validation
+### Step 1 — Train the Model
+
+```bash
+python tactical_model_trainer.py
+```
+
+This reads `clean_ipl_dataset.csv`, trains the ML model, and saves the output into `models/`. You must do this before running any other script.
+
+### Step 2 — Validate the Model
 
 ```bash
 python test_model.py
 ```
 
-This checks that:
-- The trained model loads correctly
-- Predictions can be generated from sample input
-- Output format is as expected
+Confirms the saved model in `models/` loads correctly and can generate predictions from a sample input.
 
-### Test 2 — Full Strategy Pipeline
+### Step 3 — Run the Full Strategy Pipeline
 
 ```bash
 python test_strategy.py
 ```
 
-This runs a complete simulation:
+Runs the complete end-to-end flow:
 
 ```
-Match Data → Feature Extraction → ML Model → Decision Engine → Strategy Output
+clean_ipl_dataset.csv
+    → feature_extractor.py         (builds feature vector)
+    → models/ (trained model)      (generates prediction)
+    → tactical_decision_engine.py  (produces strategy text)
+    → Console output
 ```
 
-You should see a printed tactical output in your terminal. If both scripts run without errors, your setup is complete.
+### Step 4 — Launch the Main Application
+
+```bash
+python synapse_live.py
+```
+
+This is the main entry point that wires all modules together and runs Synapse Live as a complete system.
+
+> ✅ If all four steps complete without errors, your local setup is fully working.
 
 ---
 
-## 7. System Architecture
+## 7. File-by-File Explanation
 
-```
-┌──────────────┐     ┌──────────────────┐     ┌────────────────┐
-│  IPL Dataset │────▶│ Feature Extractor│────▶│   ML Models    │
-│  (ipl_json/) │     │ (ball-by-ball    │     │ (XGBoost,      │
-│              │     │  feature eng.)   │     │  LR, LSTM)     │
-└──────────────┘     └──────────────────┘     └───────┬────────┘
-                                                       │
-                                                       ▼
-┌──────────────┐     ┌──────────────────┐     ┌────────────────┐
-│  Streamlit   │◀────│   FastAPI        │◀────│ Tactical       │
-│  Frontend UI │     │   Backend API    │     │ Decision       │
-│  (Captain    │     │   (/predict,     │     │ Engine         │
-│   Mode)      │     │    /simulate)    │     └────────────────┘
-└──────────────┘     └──────────────────┘
-```
+Read through each file before making changes to it.
 
-### Component Roles
-
-| Component | File | Responsibility |
-|-----------|------|----------------|
-| Feature Extractor | `features/feature_extractor.py` | Converts raw JSON match data into ML-ready features |
-| ML Models | `models/` | Learns patterns and predicts strategic outcomes |
-| Decision Engine | `engine/strategy_engine.py` | Translates model output into human-readable captain instructions |
-| Backend API | `api/main.py` | Serves predictions over HTTP endpoints |
-| Frontend UI | `ui/app.py` | Captain-facing dashboard for live match input and strategy display |
+| File | What It Does | Who Owns It |
+|------|-------------|------------|
+| `clean_ipl_dataset.csv` | Preprocessed IPL data. Primary input for training. Do not modify unless re-cleaning raw data. | Abhinaya |
+| `feature_extractor.py` | Reads current match state and outputs a structured feature vector for the model. | Abhinaya |
+| `player_stats.py` | Returns batting/bowling stats (averages, SR, economy) for specific players. Called during feature extraction. | Abhinaya |
+| `simulation_code.py` | Simulates a match ball-by-ball by generating synthetic match states. Feeds into the feature extractor. | Abhinaya |
+| `tactical_model_trainer.py` | Trains the ML classifier on `clean_ipl_dataset.csv` and saves the model to `models/`. | Abhinaya |
+| `tactical_decision_engine.py` | Takes model output (probabilities/classes) and converts them into readable captain instructions. | Abhinaya / Anjali |
+| `synapse_live.py` | Main entry point. Connects simulation → feature extraction → model prediction → strategy output. | All Teams |
+| `test_model.py` | Quick sanity check. Run this after every model change. | All Teams |
+| `test_strategy.py` | Full pipeline smoke test. Must pass before any Pull Request is opened. | All Teams |
+| `models/` | Auto-generated folder. Stores `.pkl` / `.h5` model files. Never edit manually. | Generated by Abhinaya |
 
 ---
 
-## 8. Development Phases — Execution Order
+## 8. System Architecture
 
-> 🚨 **CRITICAL: Follow this phase order strictly. Teams should NOT skip ahead.**  
-> Dependencies exist between phases. Backend can't work without a stable model. Frontend can't work without a working backend.
+```
+┌──────────────────────┐
+│  clean_ipl_dataset   │
+│  .csv                │
+└──────────┬───────────┘
+           │
+           ▼
+┌──────────────────────┐     ┌───────────────────────┐
+│  feature_extractor   │◀────│  player_stats.py      │
+│  .py                 │     │  (per-player profiles) │
+└──────────┬───────────┘     └───────────────────────┘
+           │
+           ▼
+┌──────────────────────┐
+│  tactical_model_     │──── saves to ──▶  models/
+│  trainer.py          │
+└──────────┬───────────┘
+           │ loads model at runtime
+           ▼
+┌──────────────────────┐     ┌───────────────────────┐
+│  tactical_decision_  │◀────│  simulation_code.py   │
+│  engine.py           │     │  (live match state)   │
+└──────────┬───────────┘     └───────────────────────┘
+           │
+           ▼
+┌──────────────────────┐
+│  synapse_live.py     │  ◀── Main entry point
+└──────────┬───────────┘
+           │
+    ┌──────┴──────┐
+    ▼             ▼
+[FastAPI]    [Streamlit]
+ Backend      Frontend
+(Anjali)     (Ved)
+```
 
 ---
 
-### 🔹 Phase 1 — Orientation (ALL TEAMS — Do First)
+## 9. Development Phases — Execution Order
 
-**Goal:** Everyone understands how the system works end-to-end before writing code.
+> 🚨 **CRITICAL: Follow this phase order strictly. Teams must not skip ahead.**  
+> Backend depends on a stable model. Frontend depends on a working backend.
 
-**Steps:**
+---
 
-1. Clone the repo and complete the setup in Section 4.
-2. Download and place the dataset per Section 5.
-3. Run both test scripts:
+### 🔹 Phase 1 — Orientation (ALL TEAMS — Do This First)
+
+**Goal:** Every contributor understands the full system before writing new code.
+
+1. Clone the repo and complete setup (Section 4).
+2. Confirm `clean_ipl_dataset.csv` is present in the repo root.
+3. Run the full sequence:
    ```bash
+   python tactical_model_trainer.py
    python test_model.py
    python test_strategy.py
+   python synapse_live.py
    ```
-4. Read through these files in order:
-   - `features/feature_extractor.py` — understand what features are generated
-   - `engine/strategy_engine.py` — understand how decisions are made
-   - `test_strategy.py` — trace the full data flow
+4. Read files in this order:
+   - `feature_extractor.py` — what features are being used?
+   - `player_stats.py` — what player data is available?
+   - `tactical_decision_engine.py` — how are strategies formed?
+   - `synapse_live.py` — how does everything connect?
 
-**Expected Output:** You should understand the flow:
-```
-Raw Match JSON → Features → Model Prediction → Strategy Text
-```
+**Expected result:** You can explain what happens between step 1 (`clean_ipl_dataset.csv`) and final output (printed strategy) without looking at the code.
 
 ---
 
-### 🔹 Phase 2 — Model Improvement (Abhinaya — Do Before Phase 3)
+### 🔹 Phase 2 — Model Improvement (ABHINAYA — Complete Before Phase 3)
 
-**Goal:** Improve the predictive accuracy of the ML model before the backend is built on top of it.
+**Goal:** Improve prediction accuracy and enrich the feature set before the backend is built on top.
 
-> ⚠️ The backend (Phase 3) will load whatever model is finalized here. Make sure the model interface (input/output format) is stable and documented before handing off.
+> ⚠️ Anjali will load whatever is saved in `models/`. Finalize the model and document its input/output schema before Phase 3 begins.
 
-**Tasks:**
+**2a. Feature Engineering** — Extend `feature_extractor.py`:
 
-**2a. Feature Engineering** — Add the following new features to `feature_extractor.py`:
-
-| Feature | Description |
-|---------|-------------|
+| New Feature | Description |
+|-------------|-------------|
 | `bowler_type` | Pace vs Spin |
-| `bowling_style` | Right-arm, Left-arm, Off-break, etc. |
+| `bowling_style` | Right-arm fast, Left-arm orthodox, Leg-break, etc. |
 | `batsman_role` | Opener, Middle-order, Finisher |
-| `venue` | Stadium name/location |
-| `pressure_index` | Custom metric combining run-rate deficit, wickets remaining, and overs left |
+| `venue` | Stadium name |
+| `pressure_index` | Custom metric combining run-rate deficit, wickets in hand, overs remaining |
 
-**2b. Add New Models** — Implement and compare:
+**2b. Improve `player_stats.py`:**
+- Add recent form (last 5 matches)
+- Head-to-head stats (specific batsman vs bowler)
+- Venue-specific performance data
 
+**2c. Add New Models to `tactical_model_trainer.py`:**
 - **XGBoost** — strong baseline for tabular cricket data
 - **Logistic Regression** — for interpretability and fast inference
-- *(Advanced)* **LSTM / Transformer** — for sequential, over-by-over pattern learning
+- *(Advanced)* **LSTM** — for sequential, over-by-over pattern modelling using `simulation_code.py`
 
-**2c. Model Evaluation** — Compare models using:
+**2d. Evaluate and Document Results** — Create `models/RESULTS.md`:
 
-- Accuracy
-- F1-Score (weighted)
-- Inference time per prediction
+| Model | Accuracy | F1-Score | Inference Time |
+|-------|----------|----------|---------------|
+| Baseline | ? | ? | ? |
+| XGBoost | ? | ? | ? |
+| Logistic Regression | ? | ? | ? |
 
-**2d. Avoid Data Leakage** — Do not use future match data (e.g., final score) as an input feature. Features must only reflect what is known at the point of the ball being bowled.
+**2e. No Data Leakage Rule**  
+Only use features that are known **at the exact moment a ball is bowled**. Never use final match result, total score, or any future-state variable as an input.
 
 **Deliverable Checklist:**
-- [ ] Updated `feature_extractor.py` with new features
-- [ ] New model training scripts in `models/`
-- [ ] Saved model files (`.pkl` or `.h5`)
-- [ ] Comparison table of model metrics documented in a `models/RESULTS.md`
-- [ ] Confirmed input/output schema of the final model (share with Team 2)
+- [ ] `feature_extractor.py` updated with new features
+- [ ] `player_stats.py` updated with richer stats
+- [ ] `tactical_model_trainer.py` updated with new models
+- [ ] New model files saved in `models/`
+- [ ] `models/RESULTS.md` created with comparison table
+- [ ] Input/output feature schema documented and shared with Anjali
 
 ---
 
-### 🔹 Phase 3 — Backend API (Anjali — Start After Phase 2)
+### 🔹 Phase 3 — Backend API (ANJALI — Start After Phase 2)
 
-**Goal:** Build a FastAPI server that loads the trained model and serves predictions over HTTP.
+**Goal:** Wrap `tactical_decision_engine.py` in a FastAPI server so the frontend can query strategies over HTTP.
 
-> ⚠️ Do **not** start this phase until Team 1 has finalized and saved the model. Coordinate with Team 1 to get the exact input feature format.
+> ⚠️ Get the finalized feature schema from Abhinaya before writing any endpoint code.
 
-**Tasks:**
-
-**3a. Set Up FastAPI App** — Create `api/main.py` with:
+**3a. Create `api/main.py`:**
 
 ```python
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+import joblib
+
 app = FastAPI()
+app.add_middleware(CORSMiddleware, allow_origins=["*"])
+
+model = joblib.load("models/your_model.pkl")  # load once at startup, not per request
 ```
 
-**3b. Load the Model on Startup** — Load the trained model once at startup (not per-request) for performance.
+**3b. Implement Endpoints:**
 
-**3c. Build Endpoints:**
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/predict_strategy` | POST | Accepts match state, returns batting + bowling strategy |
+| `/simulate_match` | POST | Runs `simulation_code.py` and returns over-by-over output |
+| `/player_stats` | GET | Returns stats for a given player name |
+| `/health` | GET | Returns `{"status": "ok"}` — used to verify server is alive |
 
-| Endpoint | Method | Input | Output |
-|----------|--------|-------|--------|
-| `/predict_strategy` | POST | JSON with current match state | Batting/bowling strategy recommendation |
-| `/simulate_match` | POST | JSON with full match config | Over-by-over simulation output |
-| `/health` | GET | None | Server status check |
+**3c. JSON Contract** — Define and share with Ved:
 
-**3d. Input/Output Contract** — Define and document the exact JSON schema for each endpoint. Share this schema with Team 3 so the frontend knows what to send and receive.
-
-Example input schema for `/predict_strategy`:
 ```json
+// POST /predict_strategy — Input
 {
   "batting_team": "CSK",
   "bowling_team": "MI",
@@ -342,192 +393,194 @@ Example input schema for `/predict_strategy`:
   "venue": "Wankhede Stadium",
   "target": null
 }
+
+// Response
+{
+  "batting_strategy": "Push for boundaries. SR target: 160+",
+  "bowling_strategy": "Yorker-heavy. Bring back your main pacer.",
+  "confidence_score": 0.84
+}
 ```
 
-**3e. Run the API locally:**
+**3d. Run locally:**
 
 ```bash
 uvicorn api.main:app --reload
 ```
 
-Visit `http://127.0.0.1:8000/docs` to see auto-generated API documentation.
+Visit `http://127.0.0.1:8000/docs` for auto-generated interactive API docs.
 
 **Deliverable Checklist:**
-- [ ] Working FastAPI app in `api/main.py`
-- [ ] All 3 endpoints implemented and tested
-- [ ] Input/output JSON schema documented
-- [ ] `requirements.txt` updated if new packages were added
-- [ ] Shared endpoint schema with Team 3
+- [ ] `api/main.py` with all endpoints implemented
+- [ ] Model loads at startup from `models/`
+- [ ] All endpoints tested with sample inputs
+- [ ] JSON schema documented and shared with Ved
+- [ ] `requirements.txt` updated if new packages added
 
 ---
 
-### 🔹 Phase 4 — Frontend UI (Ved — Start After Phase 3)
+### 🔹 Phase 4 — Frontend UI (VED — Start After Phase 3)
 
-**Goal:** Build an interactive Streamlit dashboard for captains to input match state and view tactical recommendations.
+**Goal:** Build a Streamlit captain dashboard that calls the backend and displays tactical recommendations.
 
-> ⚠️ Do **not** start building API calls until Team 2 has the endpoints running and the JSON schema is confirmed.
+> ⚠️ Do not build API calls until Anjali's server is running and the JSON schema is confirmed.
 
-**Tasks:**
+**4a. Create `ui/app.py` with:**
 
-**4a. Match Input Panel:**
+- Batting Team + Bowling Team dropdowns (all 10 IPL franchises)
+- Inputs: Over (1–20), Ball (1–6), Score, Wickets (0–10), Target (optional)
+- Venue dropdown (Wankhede, Chepauk, Eden Gardens, Narendra Modi, etc.)
+- **"Get Strategy"** button
 
-- Dropdown to select the current match (or manually input match state)
-- Dropdowns for `Batting Team` and `Bowling Team` (all IPL franchises: CSK, MI, RCB, KKR, etc.)
-- Input fields for: current over, ball number, score, wickets fallen, target (if chasing)
-- Venue selection dropdown
-
-**4b. Captain Mode Strategy Display:**
-
-- Clearly display batting and bowling strategies after receiving API response
-- Visual emphasis:
-  - **Selected Team (Your Team)** → Primary color / bold styling
-  - **Opponent Team** → Secondary/muted styling
-
-**4c. API Integration:**
+**4b. API Call:**
 
 ```python
-import requests
+import requests, streamlit as st
 
-response = requests.post(
-    "http://127.0.0.1:8000/predict_strategy",
-    json=match_state_dict
-)
-strategy = response.json()
+if st.button("Get Strategy"):
+    response = requests.post(
+        "http://127.0.0.1:8000/predict_strategy",
+        json={"batting_team": batting_team, "bowling_team": bowling_team,
+              "over": over, "ball": ball, "score": score,
+              "wickets": wickets, "venue": venue, "target": target or None}
+    )
+    if response.status_code == 200:
+        data = response.json()
+        st.success(data["batting_strategy"])   # primary styling — your team
+        st.info(data["bowling_strategy"])      # secondary styling — opponent
+        st.metric("Confidence", f"{data['confidence_score']*100:.1f}%")
+    else:
+        st.error("Backend unreachable. Run: uvicorn api.main:app --reload")
 ```
 
-**4d. Error Handling:**
+**4c. Run the UI:**
 
-- Show a user-friendly message if the backend is unreachable
-- Validate that all required fields are filled before sending the request
+```bash
+streamlit run ui/app.py
+```
 
 **Deliverable Checklist:**
-- [ ] Streamlit app runs with `streamlit run ui/app.py`
-- [ ] All match input fields working
-- [ ] API call integrated and strategy displayed
-- [ ] Team styling (primary vs secondary) implemented
-- [ ] Error states handled gracefully
+- [ ] `ui/app.py` runs without errors
+- [ ] All input fields functional
+- [ ] API call works and strategy displays correctly
+- [ ] Team color styling (primary vs secondary) implemented
+- [ ] Error shown when backend is unreachable
 
 ---
 
-### 🔹 Phase 5 — Integration Testing (ALL)
+### 🔹 Phase 5 — Integration Testing (ALL TEAMS)
 
-**Goal:** Connect all three components and verify the full pipeline works end-to-end.
+1. Abhinaya confirms `models/` has the final model
+2. Anjali runs: `uvicorn api.main:app --reload`
+3. Ved runs: `streamlit run ui/app.py`
+4. Test at least 3 different match scenarios together
 
-**Steps:**
+**Common blockers and fixes:**
 
-1. Team 2 runs the backend: `uvicorn api.main:app --reload`
-2. Team 3 runs the frontend: `streamlit run ui/app.py`
-3. All teams test the full flow together:
-   - Enter a match state in the UI
-   - Confirm the request hits the backend
-   - Confirm the strategy response is displayed correctly
+| Issue | Fix |
+|-------|-----|
+| Frontend sends wrong field names | Cross-check with Anjali's JSON schema doc |
+| Model file not found | Confirm path in `api/main.py` matches actual file in `models/` |
+| CORS error | Add `CORSMiddleware` in `api/main.py` (see Phase 3) |
+| Strategy output garbled | Abhinaya and Anjali debug `tactical_decision_engine.py` output format together |
 
-**Common Issues to Check:**
-- Frontend sending wrong JSON field names → Refer to Team 2's schema doc
-- Model returning unexpected output format → Team 1 and Team 2 to debug together
-- CORS errors when frontend calls backend → Add CORS middleware in FastAPI
+---
 
-**FastAPI CORS fix:**
-```python
-from fastapi.middleware.cors import CORSMiddleware
-app.add_middleware(CORSMiddleware, allow_origins=["*"])
+### 🔹 Phase 6 — Final Polish (ALL TEAMS)
+
+- Add plain-English reasoning alongside each strategy (e.g., *"Why: High pressure index. Opponent has 2 death-over specialists remaining."*)
+- Improve Streamlit layout using `st.columns()` and `st.metric()`
+- Run `test_model.py` and `test_strategy.py` one final time on the merged codebase
+- Update this README with the final Google Drive dataset link
+- Optionally record a short demo video of the full pipeline
+
+---
+
+## 10. Team Responsibilities
+
+### 🧠 Abhinaya — Model & Data
+
+**Owns:** `feature_extractor.py`, `player_stats.py`, `simulation_code.py`, `tactical_model_trainer.py`, `tactical_decision_engine.py`, `clean_ipl_dataset.csv`, `models/`
+
+**Claude/AI Prompt:**
 ```
+You are an expert ML engineer improving a cricket tactics prediction system.
 
----
+Files:
+- feature_extractor.py: builds feature vectors from match state
+- player_stats.py: returns player performance stats
+- tactical_model_trainer.py: trains and saves the model to models/
+- tactical_decision_engine.py: converts model output to captain instructions
+- clean_ipl_dataset.csv: the training data
 
-### 🔹 Phase 6 — Final Polish (ALL)
+Tasks:
+1. Add to feature_extractor.py: bowler_type, bowling_style, batsman_role,
+   venue, pressure_index
+2. Improve player_stats.py: add recent form, head-to-head, venue stats
+3. Add XGBoost and Logistic Regression to tactical_model_trainer.py
+4. Evaluate models: accuracy, F1-score, inference time
+5. (Advanced) Add LSTM in simulation_code.py for over-sequence modelling
 
-**Goal:** Prepare the project for demo and final submission.
-
-- Improve UI aesthetics and layout in Streamlit
-- Add plain-language explanations alongside each strategy recommendation (e.g., *"Why this strategy? The run-rate pressure index is high and the opposition has 2 death-over specialists left."*)
-- Test with at least 3 different historical match scenarios
-- Record a short demo walkthrough video (optional but recommended)
-- Update `README.md` with the final Google Drive dataset link
-
----
-
-## 9. Team Responsibilities
-
-### 🧠 Abhinaya — Model Improvement
-
-**Focus:** Feature Engineering & ML Model Development
-
-**Key Files:** `features/feature_extractor.py`, `models/`, `test_model.py`
-
-**Suggested Prompt for Claude/AI assistance:**
-
-```
-You are an expert ML engineer working on a cricket tactics prediction system.
-
-The system uses ball-by-ball IPL data (2008–2024).
-Current model: basic classification model.
-
-Your task:
-1. Suggest and implement new features: bowler_type, bowling_style, batsman_role, venue, pressure_index
-2. Add XGBoost and Logistic Regression models with proper train/test splits
-3. Evaluate all models using accuracy, F1-score, and inference time
-4. (Advanced) Design an LSTM or Transformer for over-by-over sequence modeling
-
-STRICT RULE: Do not use data leakage. Only use features that are available at the moment a ball is bowled.
+RULE: No data leakage. Features must only use info available at ball delivery time.
 ```
 
 ---
 
 ### ⚙️ Anjali — Backend API
 
-**Focus:** FastAPI Server & Model Serving
+**Owns:** `api/main.py` (new file to create)
 
-**Key Files:** `api/main.py`, `requirements.txt`
-
-**Suggested Prompt for Claude/AI assistance:**
-
+**Claude/AI Prompt:**
 ```
-You are a backend engineer building a FastAPI service for a cricket AI system.
+You are building a FastAPI backend for a cricket AI system.
+
+The trained model is in models/ (scikit-learn or XGBoost .pkl file).
+The feature schema comes from feature_extractor.py.
+The strategy text comes from tactical_decision_engine.py.
 
 Requirements:
-1. Load a trained scikit-learn or XGBoost model from disk at startup
-2. Expose a POST endpoint: /predict_strategy
-   - Input: JSON with fields: batting_team, bowling_team, over, ball, score, wickets, venue, target
-   - Output: JSON with fields: batting_strategy, bowling_strategy, confidence_score
-3. Expose a GET endpoint: /health — returns {"status": "ok"}
-4. Add CORS middleware to allow frontend requests
-5. Handle missing/malformed input with a 422 error response
+1. Load the model at startup using joblib (not per-request)
+2. POST /predict_strategy: input = match state JSON,
+   output = {batting_strategy, bowling_strategy, confidence_score}
+3. GET /health: returns {"status": "ok"}
+4. Add CORSMiddleware for Streamlit frontend
+5. Return HTTP 422 with a clear message for invalid/missing input
 
-Return clean, commented Python code.
+Write clean, well-commented Python code.
 ```
 
 ---
 
 ### 🎨 Ved — Frontend UI
 
-**Focus:** Streamlit Captain Mode Dashboard
+**Owns:** `ui/app.py` (new file to create)
 
-**Key Files:** `ui/app.py`
-
-**Suggested Prompt for Claude/AI assistance:**
-
+**Claude/AI Prompt:**
 ```
-You are a frontend developer building a Streamlit UI for a cricket AI captain assistant.
+You are building a Streamlit captain dashboard for a cricket AI system.
 
-Requirements:
-1. Match input panel:
-   - Dropdowns for batting_team and bowling_team (all IPL teams)
-   - Number inputs for: over (1–20), ball (1–6), score, wickets (0–10), target
-   - Venue dropdown
-2. A "Get Strategy" button that sends a POST request to http://127.0.0.1:8000/predict_strategy
-3. Strategy display section:
-   - Show batting_strategy and bowling_strategy from the API response
-   - Style the selected team's section with a bold primary color
-   - Style the opponent's section in a secondary/muted color
-4. Show a friendly error message if the API is unreachable
+Backend: http://127.0.0.1:8000
+Endpoint: POST /predict_strategy
+Input: batting_team, bowling_team, over (1-20), ball (1-6),
+       score, wickets (0-10), venue, target (optional int)
+Output: batting_strategy (str), bowling_strategy (str), confidence_score (float)
 
-Use st.columns() for layout. Keep the design clean and readable.
+Build:
+1. Dropdowns for all 10 IPL teams (batting + bowling)
+2. Number inputs for over, ball, score, wickets, target
+3. Venue dropdown (major IPL stadiums)
+4. "Get Strategy" button that calls the API
+5. Show batting_strategy with bold primary styling (selected team)
+6. Show bowling_strategy with secondary/muted styling (opponent)
+7. Show confidence_score as st.metric percentage
+8. Show clear error if backend is unreachable
+
+Use st.columns() for layout. Keep it clean and functional.
 ```
 
 ---
 
-## 10. Contribution Guide
+## 11. Contribution Guide
 
 ### Step 1 — Always Pull Before Starting Work
 
@@ -535,68 +588,65 @@ Use st.columns() for layout. Keep the design clean and readable.
 git pull origin main
 ```
 
-This ensures you have the latest code before making changes.
-
 ### Step 2 — Create a Feature Branch
 
-Name your branch clearly based on what you're doing:
-
 ```bash
-git checkout -b feature/xgboost-model        # Team 1 example
-git checkout -b feature/predict-endpoint     # Team 2 example
-git checkout -b feature/captain-mode-ui      # Team 3 example
+git checkout -b feature/xgboost-model          # Abhinaya example
+git checkout -b feature/fastapi-backend        # Anjali example
+git checkout -b feature/streamlit-captain-ui   # Ved example
 ```
 
-### Step 3 — Make Your Changes
+### Step 3 — Run Tests Before Committing
 
-Work on your feature. Test it locally before committing.
+```bash
+python test_model.py
+python test_strategy.py
+```
 
-### Step 4 — Commit with a Clear Message
+Both must pass with no errors before you commit anything.
+
+### Step 4 — Commit with a Descriptive Message
 
 ```bash
 git add .
-git commit -m "Add XGBoost model with pressure_index feature"
+git commit -m "Add XGBoost model with pressure_index and venue features"
 ```
 
-Good commit messages explain **what** changed and optionally **why**.
+Good commit messages describe **what** changed and optionally **why**.
 
-### Step 5 — Push Your Branch
+### Step 5 — Push and Open a Pull Request
 
 ```bash
 git push origin feature/your-branch-name
 ```
 
-### Step 6 — Open a Pull Request
+Go to GitHub → Pull Requests → New Pull Request → base: `main`.
 
-Go to GitHub → Your repository → **Pull Requests** → **New Pull Request**
-
-- Set base branch to `main`
-- Write a brief description of what you did
-- Tag at least one other team member to review
-
-> ✅ **Rule:** No one merges their own Pull Request. At least one other person must review and approve.
+> ✅ **Rule:** No one merges their own Pull Request. At least one teammate must review and approve.
 
 ---
 
-## 11. Important Rules
+## 12. Important Rules
 
 | Rule | Detail |
 |------|--------|
-| ❌ No large files in repo | Never commit the `ipl_json/` folder or any dataset files to Git |
-| ✅ Use Google Drive for data | Share the dataset link in this README and in your team chat |
-| ✅ Pin dependency versions | Do not change pinned versions (e.g., `scikit-learn==1.3.2`) without team discussion |
-| ✅ Document your model schema | Team 1 must document the final model's input/output format for Team 2 |
-| ✅ Document your API schema | Team 2 must share the endpoint JSON schema with Team 3 before Phase 4 begins |
-| ✅ Test before pushing | Run `test_model.py` and `test_strategy.py` before opening a PR |
-| ✅ Communicate blockers early | If your phase is blocked, tell the team immediately — don't wait |
+| ❌ Never commit raw datasets | `ipl_json/` must never be pushed to Git |
+| ✅ `clean_ipl_dataset.csv` is the exception | Small enough to stay in the repo |
+| ✅ Use Google Drive for raw data | Paste the link in Section 5 of this README |
+| ✅ Pin dependency versions | Do not change `scikit-learn==1.3.2` without team consensus |
+| ✅ Document model schema | Abhinaya must share feature input/output format before Phase 3 |
+| ✅ Document API schema | Anjali must share JSON contract before Phase 4 |
+| ✅ Run both test scripts before every PR | `test_model.py` and `test_strategy.py` must pass |
+| ✅ One reviewer minimum per PR | No self-merges — always get a teammate to approve |
+| ❌ Do not edit `models/` manually | Only `tactical_model_trainer.py` should write to this folder |
 
 ---
 
 ## 🏁 Final Vision
 
-Synapse Live aims to be a fully functional **AI cricket captain** — a system that doesn't just analyze the past, but makes real-time decisions just like a seasoned captain would, combining statistical patterns with situational awareness.
+Synapse Live is a fully functional **AI cricket captain** — a system that reads the live match situation and delivers the same tactical thinking a seasoned captain brings to the field, backed by 16+ years of IPL data.
 
-**Project Type:**
+**Project Classification:**
 - Machine Learning System
 - Real-Time Simulation Engine
 - Decision Intelligence Platform
@@ -604,4 +654,4 @@ Synapse Live aims to be a fully functional **AI cricket captain** — a system t
 
 ---
 
-*Last updated: See Git history*
+*Maintained by [@Raushan1504](https://github.com/Raushan1504) and contributors.*
