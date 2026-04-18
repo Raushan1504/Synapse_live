@@ -1,0 +1,11 @@
+# Ignore large datasets
+ipl_json/
+ipl_json.zip
+
+# Python cache
+__pycache__/
+*.pyc
+
+# System files
+.DS_Store
+Thumbs.db
