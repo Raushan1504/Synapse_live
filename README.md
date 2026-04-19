@@ -147,8 +147,7 @@ seaborn
 
 Download the full dataset from Google Drive:
 
-```
-👉 [PASTE YOUR GOOGLE DRIVE LINK HERE]
+```https://drive.google.com/drive/folders/1BnbQ4eZZ_v6wRaeXSOsURm36nmECImUs?usp=drive_link
 ```
 
 After downloading, place the extracted folder as follows:
