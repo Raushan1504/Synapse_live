@@ -148,7 +148,7 @@ seaborn
 Download the full dataset from Google Drive:
 
 ```
-https://drive.google.com/drive/folders/1BnbQ4eZZ_v6wRaeXSOsURm36nmECImUs?usp=sharing
+👉 [PASTE YOUR GOOGLE DRIVE LINK HERE]
 ```
 
 After downloading, place the extracted folder as follows:
@@ -237,40 +237,61 @@ Read through each file before making changes to it.
 ## 8. System Architecture
 
 ```
-┌──────────────────────┐
-│  clean_ipl_dataset   │
-│  .csv                │
-└──────────┬───────────┘
-           │
-           ▼
-┌──────────────────────┐     ┌───────────────────────┐
-│  feature_extractor   │◀────│  player_stats.py      │
-│  .py                 │     │  (per-player profiles) │
-└──────────┬───────────┘     └───────────────────────┘
-           │
-           ▼
-┌──────────────────────┐
-│  tactical_model_     │──── saves to ──▶  models/
-│  trainer.py          │
-└──────────┬───────────┘
-           │ loads model at runtime
-           ▼
-┌──────────────────────┐     ┌───────────────────────┐
-│  tactical_decision_  │◀────│  simulation_code.py   │
-│  engine.py           │     │  (live match state)   │
-└──────────┬───────────┘     └───────────────────────┘
-           │
-           ▼
-┌──────────────────────┐
-│  synapse_live.py     │  ◀── Main entry point
-└──────────┬───────────┘
-           │
-    ┌──────┴──────┐
-    ▼             ▼
-[FastAPI]    [Streamlit]
- Backend      Frontend
-(Anjali)     (Ved)
+                                        ┌─────────────────────────┐
+                                        │   Player Stats Engine   │
+                                        │     (player_stats.py)   │
+                                        └────────────┬────────────┘
+                                                     │ injects player
+                                                     │ profiles
+                                                     ▼
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│  IPL Ball-by-   │    │  Data Cleaning  │    │ Match Simulation│    │Feature Extraction│
+│  Ball Dataset   │───▶│       &         │───▶│    Engine       │───▶│    Module        │
+│  (JSON / CSV)   │    │ Preprocessing   │    │(simulation_code │    │(feature_extractor│
+└─────────────────┘    └─────────────────┘    │    .py)         │    │    .py)          │
+                                              └─────────────────┘    └────────┬─────────┘
+                                                                              │
+                                                                              ▼
+                                                                    ┌─────────────────┐
+                                                                    │    ML Models    │
+                                                                    │ Batting Strategy│
+                                                                    │ Bowling Strategy│
+                                                                    └────────┬────────┘
+                                                                             │
+                                                                             ▼
+                                                                    ┌─────────────────────────────┐
+                                                                    │   Tactical Decision Engine  │
+                                                                    │  • Match State Analyzer     │
+                                                                    │  • Bowler Constraint Tracker│
+                                                                    │  • Strategy Generator       │
+                                                                    └────────────┬────────────────┘
+                                                                                 │
+                                                                                 ▼
+                                                                    ┌────────────────────────┐
+                                                                    │  Synapse Live Interface │
+                                                                    │    (synapse_live.py)    │
+                                                                    └────────────┬────────────┘
+                                                                                 │
+                                                                                 ▼
+                                                                    ┌────────────────────────┐
+                                                                    │  Tactical Strategy     │
+                                                                    │  Output (Text / JSON)  │
+                                                                    └────────────────────────┘
 ```
+
+### Component Breakdown
+
+| Stage | File | What It Does |
+|-------|------|-------------|
+| IPL Dataset | `clean_ipl_dataset.csv` / `ipl_json/` | Raw ball-by-ball input data |
+| Data Cleaning & Preprocessing | *(preprocessing logic)* | Cleans, normalizes, and structures raw IPL data |
+| Match Simulation Engine | `simulation_code.py` | Recreates live match conditions ball-by-ball |
+| Player Stats Engine | `player_stats.py` | Injects real player profiles (form, SR, economy) into the feature pipeline |
+| Feature Extraction Module | `feature_extractor.py` | Combines match state + player stats into an ML-ready feature vector |
+| ML Models | `tactical_model_trainer.py` + `models/` | Predicts optimal batting and bowling strategies |
+| Tactical Decision Engine | `tactical_decision_engine.py` | Runs Match State Analyzer, Bowler Constraint Tracker, and Strategy Generator |
+| Synapse Live Interface | `synapse_live.py` | Main entry point — orchestrates the full pipeline end-to-end |
+| Output | Text / JSON | Human-readable captain instructions, also served via FastAPI for the Streamlit UI |
 
 ---
 
