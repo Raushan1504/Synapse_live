@@ -157,6 +157,5 @@ def generate_kmeans_labels(df: pd.DataFrame):
 
     bat_name_map = {0:"Accumulate & Rotate", 1:"Powerplay Build", 2:"Chase Aggression", 3:"Recovery Mode", 4:"Death Hitting", 5:"Steady Chase"}
     print(f"\n  Batting cluster profiles:\n{bat_profile_means.round(2)}")
-    batting_labels = np.array([bat_name_map[c] for c in bat_cluster_ids])at_cluster_ids])
-
+    batting_labels = np.array([bat_name_map[c] for c in bat_cluster_ids])
     return bowling_labels, batting_labels
