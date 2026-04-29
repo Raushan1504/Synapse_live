@@ -27,7 +27,7 @@ import pickle
 import numpy as np
 import pandas as pd
 
-from sklearn.ensemble import RandomForestClassifier
+from xgboost import XGBClassifier
 from sklearn.metrics import classification_report, accuracy_score
 from sklearn.preprocessing import LabelEncoder
 
@@ -40,6 +40,7 @@ from feature_extractor import (
     derive_batting_strategy,
 )
 from player_stats import compute_player_stats
+from kmeans_label_generator import generate_kmeans_labels
 
 
 # ── Config ────────────────────────────────────────────────────────────────────
@@ -192,48 +193,83 @@ def build_training_data(
     batsman_stats: dict,
     bowler_stats: dict,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """
-    Iterate every ball row, extract features and engineer labels.
+    """Build feature matrix + labels with pre-computed rolling features."""
 
-    Parameters
-    ----------
-    df            : Full IPL ball-by-ball DataFrame
-    batsman_stats : {batsman_name → historical strike_rate}
-    bowler_stats  : {bowler_name  → historical economy}
+    print(f"  Pre-computing rolling features for {len(df):,} deliveries...")
 
-    Returns
-    -------
-    X       : (N, 16) float array — feature matrix
-    y_bowl  : (N,)   string array — bowling strategy labels
-    y_bat   : (N,)   string array — batting strategy labels
-    """
-    X_rows = []
-    y_bowl = []
-    y_bat  = []
+    # ── Pre-compute new rolling features per match ────────────────────────────
+    df = df.copy()
 
-    print(f"  Processing {len(df):,} deliveries...")
+    # Wickets fallen (cumulative per match per innings)
+    df["wickets_fallen"] = df.groupby(["match_id", "innings"])["wicket"].cumsum()
+
+    # Dot streak (consecutive dots)
+    def _dot_streak(series):
+        streak, result = 0, []
+        for v in series:
+            streak = streak + 1 if v == 1 else 0
+            result.append(streak)
+        return result
+
+    df["dot_streak"] = df.groupby(["match_id", "innings"])["is_dot"].transform(
+        lambda x: _dot_streak(x.tolist())
+    )
+
+    # Recent boundary rate (last 12 balls)
+    df["recent_boundary_rate"] = df.groupby(["match_id", "innings"])["is_boundary"].transform(
+        lambda x: x.rolling(12, min_periods=1).mean()
+    )
+
+    # Partnership runs (reset at each wicket)
+    df["wicket_id"] = df.groupby(["match_id", "innings"])["wicket"].cumsum()
+    df["partnership_runs"] = df.groupby(
+        ["match_id", "innings", "wicket_id"]
+    )["runs_off_bat"].cumsum() if "runs_off_bat" in df.columns else df.groupby(
+        ["match_id", "innings", "wicket_id"]
+    )["runs"].cumsum()
+
+    # Bowler's last-over economy (rolling 6-ball sum)
+    df["bowler_last_over_economy"] = df.groupby(["match_id", "innings", "bowler"])["runs"].transform(
+        lambda x: x.rolling(6, min_periods=1).sum()
+    )
+
+    # Required run rate (innings 2 only — filled from innings 1 score)
+    inn1_scores = df[df["innings"] == 1].groupby("match_id")["team_score"].max()
+    df["innings1_score"] = df["match_id"].map(inn1_scores)
+    df["overs_float_col"] = df["over"] + (df["ball"] - 1) / 6.0
+    overs_remaining = (20.0 - df["overs_float_col"]).clip(lower=0.01)
+    runs_needed = (df["innings1_score"] + 1 - df["team_score"]).clip(lower=0)
+    df["required_run_rate"] = np.where(
+        df["innings"] == 2,
+        (runs_needed / overs_remaining).round(2),
+        df["run_rate"]
+    )
+
+    print(f"  Rolling features done. Building feature vectors...")
     t0 = time.time()
 
+    X_rows, y_bowl, y_bat = [], [], []
+
     for _, row in df.iterrows():
-        # Inject per-player historical stats (same as simulation loop)
         row = row.copy()
         row["strike_rate"]    = batsman_stats.get(row.get("batsman"), 120.0)
         row["bowler_economy"] = bowler_stats.get(row.get("bowler"),   7.5)
-
         feats = extract_features(row)
         X_rows.append(features_to_array(feats))
-        y_bowl.append(derive_bowling_strategy(row))
-        y_bat.append(derive_batting_strategy(row))
 
     elapsed = time.time() - t0
-    print(f"  Done in {elapsed:.1f}s.")
-    return np.array(X_rows, dtype=np.float32), np.array(y_bowl), np.array(y_bat)
+    print(f"  Feature extraction done in {elapsed:.1f}s.")
+
+    # ── K-Means data-driven labels (replaces if-else rules) ──────────────────
+    print("\n  Generating K-Means strategy labels (data-driven)...")
+    y_bowl, y_bat = generate_kmeans_labels(df)
+
+    return np.array(X_rows, dtype=np.float32), y_bowl, y_bat
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # STEP 2 — Train, evaluate, persist
 # ─────────────────────────────────────────────────────────────────────────────
-
 def train_and_save(
     X_train: np.ndarray,
     X_test: np.ndarray,
@@ -244,7 +280,7 @@ def train_and_save(
     label: str,
     noise_rate: float = LABEL_NOISE_RATE,
     drop_feature_indices: list | None = None,
-) -> tuple[RandomForestClassifier, LabelEncoder]:
+) -> tuple[XGBClassifier, LabelEncoder]:
     """
     Train a single RandomForest classifier and save artifacts to disk.
 
@@ -291,7 +327,18 @@ def train_and_save(
           f"({100 * noisy_count / len(y_train_enc):.1f}%)")
 
     # ── Train ────────────────────────────────────────────────────────────
-    clf = RandomForestClassifier(**RF_PARAMS)
+ # ── Train ────────────────────────────────────────────────────────────
+    clf = XGBClassifier(
+        n_estimators=300,
+        max_depth=6,
+        learning_rate=0.05,
+        subsample=0.8,
+        colsample_bytree=0.8,
+        objective="multi:softprob",
+        eval_metric="mlogloss",
+        random_state=42,
+        n_jobs=-1,
+    )
     print("  Fitting...")
     t0 = time.time()
     clf.fit(X_train_binned, y_train_noisy)
