@@ -264,6 +264,10 @@ class MatchStateAnalyzer:
             "is_collapse": collapse,
             "recent_wicket": recent_wkt,
             "pressure_level": pressure,
+            # New context fields (shown in frontend)
+            "wickets_in_hand": max(0, 10 - wickets),
+            "resource_index": round((balls_remaining / 120.0) * (max(0, 10 - wickets) / 10.0), 3),
+            "rrr_crr_delta": round((required_rate - run_rate) if required_rate else 0.0, 2),
         }
 
     @staticmethod
