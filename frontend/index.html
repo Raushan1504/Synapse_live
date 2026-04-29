@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+body {
+    font-family: Arial;
+    background-color: #f5f5f5;
+    padding: 30px;
+}
+
+h2 {
+    color: #333;
+}
+
+input {
+    padding: 8px;
+    margin-bottom: 10px;
+    width: 200px;
+}
+
+button {
+    padding: 10px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+#result {
+    margin-top: 15px;
+    font-weight: bold;
+}
+</style>
+</head>
+<body>
+
+<h2>Match Strategy Predictor</h2>
+
+<label>Over:</label>
+<input id="over" type="number"><br><br>
+
+<label>Ball:</label>
+<input id="ball" type="number"><br><br>
+
+<label>Score:</label>
+<input id="score" type="number"><br><br>
+
+<label>Wickets:</label>
+<input id="wickets" type="number"><br><br>
+
+<button onclick="predict()">Predict Strategy</button>
+
+<h3>Result:</h3>
+<p id="result"></p>
+
+<script>
+async function predict() {
+    try {
+        const data = {
+            batting_team: "CSK",
+            bowling_team: "MI",
+            over: parseInt(document.getElementById("over").value),
+            ball: parseInt(document.getElementById("ball").value),
+            score: parseInt(document.getElementById("score").value),
+            wickets: parseInt(document.getElementById("wickets").value),
+            venue: "Chennai",
+            target: null
+        };
+
+        const response = await fetch("http://127.0.0.1:8000/predict_strategy", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+
+        document.getElementById("result").innerText =
+            "Batting Strategy: " + result.batting_strategy +
+            " | Bowling Strategy: " + result.bowling_strategy +
+            " | Confidence: " + result.confidence_score;
+
+    } catch (error) {
+        document.getElementById("result").innerText =
+            "Error connecting to backend!";
+        console.error(error);
+    }
+}
+</script>
+
+</body>
+</html>
